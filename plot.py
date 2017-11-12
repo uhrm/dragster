@@ -28,5 +28,5 @@ print(f"number of frames: {len(frames)}")
 
 # create interactive svg
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'))
-template = env.get_template('template.svg')
+template = env.get_template('race.svg.j2')
 template.stream(states=states, frames=frames, maxframe=len(states)).dump(f"race_{runid}.svg")

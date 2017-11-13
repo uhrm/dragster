@@ -1,0 +1,3 @@
+[submodule "rom"]
+	path = rom
+	url = ssh://git@uhrm.repositoryhosting.com/uhrm/dragster-rom.git

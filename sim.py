@@ -62,8 +62,8 @@ def sim(fth, fcl, offset=0, verbose=0):
     r = 0  # motor rpm
 
     # input generators
-    thgen = fth(t)
-    clgen = fcl(t)
+    thgen = fth()
+    clgen = fcl()
 
     # inputs
     th = thprev = 0
@@ -210,17 +210,17 @@ def parse_dump(romname, runid):
     """Parse a Stella dump file."""
 
     with open(f"data/{romname}_dbg_{runid}.dump", 'r') as f:
-        fmsb = -256
+        fmsb = -1
         while True:
             data = [f.readline().split() for _ in range(10)]
             if len(data[0]) == 0:
                 break
             # print(data)
             fidx = int(data[0][2], 16)
-            if fidx == 0:
-                fmsb += 256
+            if fidx == 0 or fmsb < 0:
+                fmsb += 1
             yield FrameState(
-                frame = fmsb + fidx,
+                frame = (fmsb << 8) + fidx,
                 status = (int(data[5][3], 16) << 8) + int(data[5][5], 16),  # $D2, $D4
                 countdown = int(data[0][15], 16),
                 time = 100000*(int(data[3][4], 16) >> 4)   +  \
@@ -242,13 +242,15 @@ def parse_dump(romname, runid):
 if __name__ == "__main__":
 
     # throttle generator
-    def fth(t):
+    def fth():
+        t = 0
         while t < 144: yield 0; t += 1
         while True:    yield 1; t += 1
 #        while t <  30: yield 1; t += 1
 
     # clutch generator
-    def fcl(t):
+    def fcl():
+        t = 0
         while t < 142: yield 0; t += 1
         while t < 160: yield 1; t += 1
         while t < 174: yield 0; t += 1
@@ -264,8 +266,11 @@ if __name__ == "__main__":
         write_script(script, fth, fcl)
 
     # compare dump with simulation
-    for ss, sd in zip(sim(fth, fcl), parse_dump('Dragster (1980) (Activision)', 'b205071d')):
-        if (ss.status != sd.status) or (ss.time != sd.time) or (ss.x != sd.x) or (ss.v != sd.v) or (ss.y != sd.y) or (ss.r != sd.r) or (ss.th != sd.th):
+    ndiffs = 0
+    for ss, sd in zip(sim(fth, fcl), parse_dump('Dragster (1980) (Activision)', 'demo')):
+        if (ss.status != sd.status) or (ss.time != sd.time) or (ss.countdown != sd.countdown) or \
+           (ss.x != sd.x) or (ss.v != sd.v) or (ss.y != sd.y) or (ss.r != sd.r) or (ss.th != sd.th):
+            ndiffs += 1
             print(f"frame     {ss.frame:8d}  --  frame     {sd.frame:8d}")
             print(f"status    {ss.status:8d}  --  status    {sd.status:8d}")
             print(f"countdown {ss.countdown:8d}  --  countdown {sd.countdown:8d}")
@@ -278,3 +283,5 @@ if __name__ == "__main__":
             print(f"cl        {ss.cl:8d}  --  cl        {sd.cl:8d}")
             print(f"rs        {ss.rs:8d}  --  rs        {sd.rs:8d}")
             print()
+    if ndiffs == 0:
+        print('Frame states are equal.')

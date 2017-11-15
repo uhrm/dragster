@@ -1,18 +1,20 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink= "http://www.w3.org/1999/xlink">
-  <!-- frames -->
-  {% for data in frames %}
-  <image id="frame{{loop.index0}}" visibility="hidden" x="{{150+5*loop.index0}}" y="38" width="320" height="212" xlink:href="data:image/png;base64,{{data}}" />
-  {% endfor %}
+  {% for t in range(maxframe) %}
+  <g id="frame{{loop.index0}}" visibility="hidden" transform="translate({{150+5*loop.index0-315*loop.index0//(maxframe-1)}},0)">
+    <!-- frames -->
+    {# for data in frames #}
+    <image x="0" y="38" width="320" height="212" xlink:href="data:image/png;base64,{{frames[t]}}" />
+    {# endfor #}
 
-  <!-- text info -->
-  {% for s in states %}
-  <g id="info{{loop.index0}}" visibility="hidden">
-    <rect x="{{150+5*loop.index0}}" y="250" width="320" height="50" fill="#CCCCCC" />
-    <text x="{{150+5*loop.index0}}" y="250" font-family="Courier" font-size="14" >
-      <tspan x="{{160+5*loop.index0}}" dy="1.6em" xml:space="preserve">frame: {{ '%-3d' % s.frame }}        r: {{ '%-2d' % s.r }}    v: {{ '%-3d' % s.v }}</tspan>
-      <tspan x="{{160+5*loop.index0}}" dy="1.2em" xml:space="preserve">{% if s.countdown > 0 %}countdown: {{ '%-3d' % s.countdown }}{% elif s.time != 1111000 %}time {{ '%-9.2f' % (s.time//100/100)}}{% else %}              {% endif %}    x: {{ '%-5d' % s.x }}     </tspan>
+    <!-- text info -->
+    {# for s in states #}
+    <rect x="0" y="250" width="320" height="50" fill="#CCCCCC" />
+    <text x="0" y="250" font-family="Courier" font-size="14" >
+      <tspan x="10" dy="1.6em" xml:space="preserve">frame: {{ '%-3d' % states[t].frame }}        r: {{ '%-2d' % states[t].r }}    v: {{ '%-3d' % states[t].v }}</tspan>
+      <tspan x="10" dy="1.2em" xml:space="preserve">{% if states[t].countdown > 0 %}countdown: {{ '%-3d' % states[t].countdown }}{% elif states[t].time != 1111000 %}time: {{ '%-8.2f' % (states[t].time//100/100)}}{% else %}              {% endif %}    x: {{ '%-5d' % states[t].x }}     </tspan>
     </text>
+    {# endfor #}
   </g>
   {% endfor %}
 
@@ -71,9 +73,12 @@
 
   <!-- frame select overlay -->
   {% for t in range(maxframe) %}
-  <rect x="{{150+5*t}}" y="300" width="5" height="1060" fill="black" fill-opacity="0"
-        onmouseover="this.style['fill-opacity'] = 0.15; document.getElementById('frame{{t}}').setAttribute('visibility','visible'); document.getElementById('info{{t}}').setAttribute('visibility','visible');"
-        onmouseout="this.style['fill-opacity'] = 0; document.getElementById('frame{{t}}').setAttribute('visibility','hidden'); document.getElementById('info{{t}}').setAttribute('visibility','hidden');" />
+  <g transform="translate({{150+5*t}},0)">
+    <rect id="sel{{t}}" visibility="hidden" x="0" y="300" width="5" height="1060" fill="black" fill-opacity="0.15" />
+    <rect visibility="hidden" pointer-events="all" x="0" y="38" width="5" height="1322"
+          onmouseover="document.getElementById('sel{{t}}').setAttribute('visibility','visible'); document.getElementById('frame{{t}}').setAttribute('visibility','visible'); /*document.getElementById('info{{t}}').setAttribute('visibility','visible');*/"
+          onmouseout="document.getElementById('sel{{t}}').setAttribute('visibility','hidden'); document.getElementById('frame{{t}}').setAttribute('visibility','hidden'); /*document.getElementById('info{{t}}').setAttribute('visibility','hidden');*/" />
+  </g>
   {% endfor %}
 
 

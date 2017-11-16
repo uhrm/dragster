@@ -1,10 +1,10 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   {% for t in range(maxframe) %}
   <g id="frame{{loop.index0}}" visibility="hidden" transform="translate({{150+5*loop.index0-315*loop.index0//(maxframe-1)}},0)">
     <!-- frames -->
     {# for data in frames #}
-    <image x="0" y="38" width="320" height="212" href="data:image/png;base64,{{frames[t]}}" />
+    <image x="0" y="38" width="320" height="212" xlink:href="data:image/png;base64,{{frames[t]}}" />
     {# endfor #}
 
     <!-- text info -->

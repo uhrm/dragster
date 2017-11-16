@@ -16,7 +16,7 @@ parser.add_argument("--romname", help="The name of the ROM file.", default='Drag
 args = parser.parse_args()
 
 # create output directory
-Path('docs/plots').mkdir(parents=True, exist_ok=True)
+Path('pages/plots').mkdir(parents=True, exist_ok=True)
 
 # load states
 states = [s for s in parse_dump(args.romname, args.runid)]
@@ -29,4 +29,4 @@ print(f"number of frames: {len(frames)}")
 # create interactive svg
 env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'))
 template = env.get_template('race.svg.j2')
-template.stream(states=states, frames=frames, maxframe=len(states)).dump(f"docs/plots/race_{args.runid}.svg")
+template.stream(states=states, frames=frames, maxframe=len(states)).dump(f"pages/plots/race_{args.runid}.svg")

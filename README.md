@@ -1,6 +1,8 @@
 # dragster
 Dragster Analysis and Simulation
 
+View the results on this project's [Github Pages](https://uhrm.github.io/dragster/).
+
 ## Setting up Stella
 
     git submodule init stella
@@ -16,10 +18,12 @@ Dragster Analysis and Simulation
 
 In Stella's debugger prompt run:
 
-    exec scripts/demo
+    exec scripts/demo demo
+
+This should create 524 screenshots and one dump file in folder `data/`.
 
 ## Creating an interactive SVG info-graphic
 
     python3.6 plot.py demo
 
-This should create an SVG file in folder `docs/plots/`.
+This should create an SVG file in folder `pages/plots/`.

@@ -42,9 +42,7 @@ def vref(y, r):
     #   y=3: vref = 4*r + 2*c
     #   y=4: vref = 8*r + 4*c
     # with c=1 if r >= 20, c=0 otherwise
-    if y == 0:
-        return 0
-    return (1 << y-1)*r + ((1 << y-1) >> 1)*(r >= 20)
+    return ((1 << y) >> 1)*r + ((1 << y) >> 2)*(r >= 20)
 
 
 def sim(fth, fcl, offset=0, verbose=0):

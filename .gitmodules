@@ -4,4 +4,4 @@
 [submodule "stella"]
 	path = stella
 	url = https://github.com/uhrm/stella.git
-	branch = tas-script
+	branch = tas-dragster

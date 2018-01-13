@@ -230,3 +230,27 @@ elif (mod.status == GRB.INF_OR_UNBD) or (mod.status == GRB.INFEASIBLE):
     # mod.computeIIS()
     # mod.write("%s.ilp" % "tmp")
     pass
+
+
+from pathlib import Path
+from sim import write_script
+
+# input generator from optimal solution
+def optgen(offset):
+    th = 0
+    cl = 0
+    t = 1  # inputs start at frame 1
+    while True:
+        j = step(t, offset)
+        if j >= 0:
+            th = int(u[0][j].x)
+            cl = int(u[1][j].x)
+        yield th, cl
+        t += 1
+
+
+# write Stella debug script
+Path('scripts').mkdir(parents=True, exist_ok=True)  # create 'scripts' directory
+with open(f"scripts/opt_ofs{2*offset:x}.script", "w") as script:
+    write_script(script, optgen(0), 0, frame(n, offset)-1)
+

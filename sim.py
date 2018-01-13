@@ -86,7 +86,7 @@ def sim(ingen, offset=0, verbose=0):
     # main loop
     while True:
         # check end conditions
-        if t < 0 and y > 0:
+        if tm > 0 and y > 0:
             if verbose > 0:
                 print(f"{t:6d}  {t//16:5d}  EARLY")
             break  # early

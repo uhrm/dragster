@@ -6,12 +6,22 @@ from gurobipy import GRB
 # basic model
 #
 #  * model only odd frames where physics of player 0 is evaluated
-#  * time starts 10 frames before race start (enough to max out -- but not bust -- the engine in gear N)
+#  * time starts 10 time steps (i.e. 20 frames) before race start (enough to
+#    max out -- but not bust -- the engine in gear N)
 #
 
 # parameters
 
-n = 60  # number of frames
+offset = 0  # offset (in time steps) of game start relative to global frame counter [0-7]
+n = 60  # number of time steps
+
+def frame(j, offset):
+    """Convert time step j to in-game frame number."""
+    return 161+2*(j+offset-10)
+
+def step(frame, offset):
+    """Convert in-game frame number to time step j."""
+    return (frame-161)//2 - offset + 10
 
 
 # model
@@ -117,7 +127,7 @@ for j in range(n):
     mod.addConstr(rd[0][j], GRB.GREATER_EQUAL, -yr[0][j], f"Rd3(0,{j}")
     Rdrhs = (2*u[0][j], 2*u[0][j]-2, 0, 0)
     for i in range(1, 5):
-        if (j-10) & rpm_skip[i] == 0:
+        if frame(j, offset) & rpm_skip[i] == 0:
             Rdrhs = (-yr[i][j]+Rdrhs[0], yr[i][j]+Rdrhs[1], yr[i][j]+Rdrhs[2], -yr[i][j]+Rdrhs[3])
     mod.addConstr(rd[1][j], GRB.LESS_EQUAL, Rdrhs[0], f"Rd1(1,{j}")
     mod.addConstr(rd[1][j], GRB.GREATER_EQUAL, Rdrhs[1], f"Rd2(1,{j}")
@@ -162,32 +172,33 @@ for j in range(1, n):
 
 # dragster speed
 #
-#   vd[0][j] = 1    if yr[0][j-1]==0 and v[j-1] < vr[j]
-#   vd[1][j] = 1    if yr[0][j-1]==0 and v[j-1] > vr[j]
+#   vd[0][j] = 1    if yr[0][j]==0 and v[j-1] < vr[j]
+#   vd[1][j] = 1    if yr[0][j]==0 and v[j-1] > vr[j]
 #
 #   v[j] = v[j-1] + 2*vd[0][j] - vd[1][j]
 #
-#   rv[j] = 1       if yr[0][j-1]==0 and v[j-1] < vr[j]-15
+#   rv[j] = 1       if yr[0][j]==0 and v[j-1] < vr[j]-15
 #
 for j in range(1, n):
     # vd[0] (increment)
-    mod.addConstr(vd[0][j], GRB.LESS_EQUAL, 1-yr[0][j-1], "")
-    mod.addConstr(v[j-1] + 252*(yr[0][j-1]+vd[0][j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j], "")
+    mod.addConstr(vd[0][j], GRB.LESS_EQUAL, 1-yr[0][j], "")
+    mod.addConstr(v[j-1] + 252*(yr[0][j]+vd[0][j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j], "")
     mod.addConstr(v[j-1] - 252*(1-vd[0][j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-1, "")
     # vd[1] (decrement)
-    mod.addConstr(vd[1][j], GRB.LESS_EQUAL, 1-yr[0][j-1], "")
-    mod.addConstr(v[j-1] - 252*(yr[0][j-1]+vd[1][j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j], "")
+    mod.addConstr(vd[1][j], GRB.LESS_EQUAL, 1-yr[0][j], "")
+    mod.addConstr(v[j-1] - 252*(yr[0][j]+vd[1][j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j], "")
     mod.addConstr(v[j-1] + 252*(1-vd[1][j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]+1, "")
     # v (speed)
     mod.addConstr(v[j], GRB.EQUAL, v[j-1] + 2*vd[0][j] - vd[1][j], "")
     # rv (motor speed increment)
-    mod.addConstr(rv[j], GRB.LESS_EQUAL, 1-yr[0][j-1], "")
-    mod.addConstr(v[j-1] + 252*(yr[0][j-1]+rv[j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-15, "")
+    mod.addConstr(rv[j], GRB.LESS_EQUAL, 1-yr[0][j], "")
+    mod.addConstr(v[j-1] + 252*(yr[0][j]+rv[j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-15, "")
     mod.addConstr(v[j-1] - 252*(1-rv[j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-16, "")
 
 status = mod.optimize()
 
 if mod.status == GRB.OPTIMAL:
+    print("frame:   ", str.join(" ", (f"{frame(j, offset):4d}" for j in range(n))))
     print("j:       ", str.join(" ", (f"{j:4d}" for j in range(n))))
     print("u(th):   ", str.join(" ", (f"{int(uj.x):4d}" for uj in u[0])))
     print("u(cl):   ", str.join(" ", (f"{int(uj.x):4d}" for uj in u[1])))

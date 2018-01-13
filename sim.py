@@ -184,7 +184,7 @@ def sim(ingen, offset=0, verbose=0):
         # ***ENDEBUG***
 
 
-def write_script(script, ingen, offset=0):
+def write_script(script, ingen, offset=0, maxframe=None):
     """Write a Stella debug script for the given user inputs."""
 
     # previous inputs
@@ -204,10 +204,8 @@ def write_script(script, ingen, offset=0):
         script.write("stepwhile pc!=$f29a\n")
         script.write("savesnap\n")
         script.write("dump 80 ff 7\n")
-        # ***DEBUG***
-#        if s.frame == 180:
-#            break
-        # ***ENDEBUG***
+        if maxframe and s.frame >= maxframe:
+            break
         # save input values
         thprev = s.th
         clprev = s.cl

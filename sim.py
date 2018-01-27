@@ -11,10 +11,11 @@ from collections import namedtuple
 #   v:         speed
 #   y:         gear
 #   r:         motor r.p.m.
+#   vr:        reference speed
 #   th:        throttle
 #   cl:        clutch
 #   rs:        restart
-FrameState = namedtuple('FrameState', ['frame', 'status', 'countdown', 'time', 'x', 'v', 'y', 'r', 'th', 'cl', 'rs'])
+FrameState = namedtuple('FrameState', ['frame', 'status', 'countdown', 'time', 'x', 'v', 'y', 'r', 'vr', 'th', 'cl', 'rs'])
 
 
 def gearchr(y, cl):
@@ -62,6 +63,7 @@ def sim(ingen, offset=0, verbose=0):
     v = 0  # speed
     y = 0  # gear
     r = 0  # motor rpm
+    vr = 0 # reference speed
 
     busted = False
 
@@ -70,15 +72,15 @@ def sim(ingen, offset=0, verbose=0):
     cl = clprev = 0
 
     # start game (hard-coded)
-    yield FrameState(frame=t, status=0x0100, countdown=tm, time=tr, x=x, v=v, y=1, r=r, th=0, cl=0, rs=0)
+    yield FrameState(frame=t, status=0x0100, countdown=tm, time=tr, x=x, v=v, y=1, r=r, vr=vr, th=0, cl=0, rs=0)
     for s in range(offset):
         t += 1
         th, cl = next(ingen)
-        yield FrameState(frame=t, status=0x0100, countdown=tm, time=tr, x=x, v=v, y=1, r=r, th=th, cl=cl, rs=0)
+        yield FrameState(frame=t, status=0x0100, countdown=tm, time=tr, x=x, v=v, y=1, r=r, vr=vr, th=th, cl=cl, rs=0)
     t += 1
     tm = 159
     th, cl = next(ingen)
-    yield FrameState(frame=t, status=0, countdown=tm, time=tr, x=x, v=v, y=y, r=r, th=th, cl=cl, rs=1)
+    yield FrameState(frame=t, status=0, countdown=tm, time=tr, x=x, v=v, y=y, r=r, vr=vr, th=th, cl=cl, rs=1)
     t += 1
     tm = max(tm-1, 0)
     th, cl = next(ingen)
@@ -99,7 +101,7 @@ def sim(ingen, offset=0, verbose=0):
             status=0,
             countdown=tm,
             time=tr,
-            x=x, v=v, y=y, r=r, th=th, cl=cl, rs=0)
+            x=x, v=v, y=y, r=r, vr=vr, th=th, cl=cl, rs=0)
         # update timer
         t += 1
         tm = max(tm-1, 0)
@@ -114,7 +116,7 @@ def sim(ingen, offset=0, verbose=0):
                 status=0x0100,  # time up
                 countdown=tm,
                 time=999900,
-                x=x, v=v, y=y, r=0, th=th, cl=cl, rs=0)
+                x=x, v=v, y=y, r=0, vr=0, th=th, cl=cl, rs=0)
             break  # time up
         # current inputs
         th, cl = next(ingen)
@@ -132,7 +134,7 @@ def sim(ingen, offset=0, verbose=0):
                     status=0x0100,  # finished
                     countdown=tm,
                     time=tr,
-                    x=x, v=v, y=y, r=0, th=th, cl=cl, rs=0)
+                    x=x, v=v, y=y, r=0, vr=0, th=th, cl=cl, rs=0)
                 break
             # update motor RPM
             rpm_skip = [0x00, 0x00, 0x02, 0x06, 0x0E]
@@ -170,7 +172,7 @@ def sim(ingen, offset=0, verbose=0):
                     status=0x0001,  # busted
                     countdown=tm,
                     time=tr,
-                    x=x, v=v, y=y, r=0, th=th, cl=cl, rs=0)
+                    x=x, v=v, y=y, r=0, vr=vr, th=th, cl=cl, rs=0)
                 break
             # update gear
             if cl == 0 and clprev == 1:
@@ -240,6 +242,7 @@ def parse_dump(romname, runid):
                 v = int(data[4][1], 16),
                 y = int(data[4][14], 16) & 0x7F,
                 r = int(data[2][10], 16),
+                vr = 0, # FIXME: read out reference speed
                 th = 1 - ((int(data[9][14], 16) & 0x80) >> 7),
                 cl = 1 - ((int(data[9][1],  16) & 0x40) >> 6),  # 1 - ((int(data[2][15], 16) & 0x04) >> 2),
                 rs = 1 - ((int(data[9][1],  16) & 0x80) >> 7)   # 1 - ((int(data[2][15], 16) & 0x08) >> 3)
@@ -297,6 +300,7 @@ if __name__ == "__main__":
                 print(f"v         {ss.v:8d}  --  v         {sd.v:8d}")
                 print(f"y         {ss.y:8d}  --  y         {sd.y:8d}")
                 print(f"r         {ss.r:8d}  --  r         {sd.r:8d}")
+                print(f"vr        {ss.vr:8d}  --  vr        {sd.vr:8d}")
                 print(f"th        {ss.th:8d}  --  th        {sd.th:8d}")
                 print(f"cl        {ss.cl:8d}  --  cl        {sd.cl:8d}")
                 print(f"rs        {ss.rs:8d}  --  rs        {sd.rs:8d}")

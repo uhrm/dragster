@@ -1,115 +1,84 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{{200+5*maxframe}}" height="1360">
-  {% for t in range(maxframe) %}
-  <g id="frame{{loop.index0}}" visibility="hidden" transform="translate({{150+5*loop.index0-315*loop.index0//(maxframe-1)}},0)">
+  {% for s in states %}
+  <g id="frame{{s.frame}}" visibility="hidden" transform="translate({{150+(5-315/(maxframe-1))*s.frame}},0)">
     <!-- frames -->
-    {# for data in frames #}
-    <image x="0" y="38" width="320" height="212" xlink:href="data:image/png;base64,{{frames[t]}}" />
-    {# endfor #}
+    <image x="0" y="38" width="320" height="212" xlink:href="data:image/png;base64,{{frames[s.frame]}}" />
 
     <!-- text info -->
-    {# for s in states #}
     <rect x="0" y="250" width="320" height="50" fill="#CCCCCC" />
     <text x="0" y="250" font-family="Courier" font-size="14" >
-      <tspan x="10" dy="1.6em" xml:space="preserve">frame: {{ '%-3d' % states[t].frame }} ({{ '%X' % (states[t].frame % 16) }})    r: {{ '%-2d' % states[t].r }}    v: {{ '%-3d' % states[t].v }}</tspan>
-      <tspan x="10" dy="1.2em" xml:space="preserve">{% if states[t].countdown > 0 %}countdown: {{ '%-3d' % states[t].countdown }}{% elif states[t].status == 1 %}busted        {% elif states[t].time != 1111000 %}time: {{ '%-8.2f' % (states[t].time//100/100)}}{% else %}              {% endif %}    x: {{ '%-5d' % states[t].x }}     </tspan>
+      <tspan x="10" dy="1.6em" xml:space="preserve">frame: {{ '%-3d' % s.frame }} ({{ '%X' % (s.frame % 16) }})    r: {{ '%-2d' % s.r }}    v: {{ '%-3d' % s.v }}</tspan>
+      <tspan x="10" dy="1.2em" xml:space="preserve">{% if s.countdown > 0 %}countdown: {{ '%-3d' % s.countdown }}{% elif s.status == 1 %}busted        {% elif s.time != 1111000 %}time: {{ '%-8.2f' % (s.time//100/100)}}{% else %}              {% endif %}    x: {{ '%-5d' % s.x }}     </tspan>
     </text>
-    {# endfor #}
   </g>
   {% endfor %}
 
   <!-- separator -->
-  <rect x="150" y="300" width="{{5*maxframe}}" height="5" fill="black" fill-opacity="0.3" />
+  <rect x="150" y="300" width="{{5*(states|length)}}" height="5" fill="black" fill-opacity="0.3" />
+  {% for s in states %}
+  {% if s.frame > 0 and (s.y <= 1 or (((s.frame-1)//2)%2 == 0 and (s.y <= 2 or (((s.frame-1)//4)%2 == 0 and (s.y <= 3 or ((s.frame-1)//8)%2 == 0))))) %}
+  <rect x="{{150+5*(s.frame)}}" y="300" width="5" height="5" fill="#75507b" />
+  {% endif %}
+  {% endfor %}
 
   <!-- throttle -->
   <text x="140" y="312.5" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">throttle</text>
   {% for s in states %}
-    {% if s.th == 1 %}
-  <rect x="{{150+5*loop.index0}}" y="{{305}}" width="5" height="15" fill="red" />
-    {% endif %}
+  {% if s.th == 1 %}
+  <rect x="{{150+5*s.frame}}" y="305" width="5" height="15" fill="#cc0000" />
+  {% endif %}
   {% endfor %}
 
   <!-- separator -->
-  <rect x="150" y="320" width="{{5*maxframe}}" height="5" fill="black" fill-opacity="0.3" />
+  <rect x="150" y="320" width="{{5*(states|length)}}" height="5" fill="black" fill-opacity="0.3" />
 
   <!-- clutch -->
   <text x="140" y="332.5" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">clutch</text>
   {% for s in states %}
-    {% if s.cl == 1 %}
-  <rect x="{{150+5*loop.index0}}" y="{{325}}" width="5" height="15" fill="red" />
-    {% endif %}
+  {% if s.cl == 1 %}
+  <rect x="{{150+5*s.frame}}" y="{{325}}" width="5" height="15" fill="#cc0000" />
+  {% endif %}
   {% endfor %}
 
   <!-- separator -->
-  <rect x="150" y="340" width="{{5*maxframe}}" height="5" fill="black" fill-opacity="0.3" />
+  <rect x="150" y="340" width="{{5*(states|length)}}" height="5" fill="black" fill-opacity="0.3" />
 
   <!-- motor speed -->
   <text x="140" y="425" dy="-0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">motor</text>
   <text x="140" y="425" dy="0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">speed</text>
   {% for s in states %}
-  <rect x="{{150+5*loop.index0}}" y="{{345+5*s.r}}" width="5" height="5" fill="blue" />
+  <rect x="{{150+5*s.frame}}" y="{{345+5*s.r}}" width="5" height="5" fill="{% if s.r < 20 %}#3465a4{% else %}#75507b{% endif %}" />
   {% endfor %}
 
   <!-- separator -->
-  <rect x="150" y="505" width="{{5*maxframe}}" height="5" fill="black" fill-opacity="0.3" />
+  <rect x="150" y="505" width="{{5*(states|length)}}" height="5" fill="black" fill-opacity="0.3" />
 
   <!-- dragster speed -->
   <text x="140" y="670" dy="-0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">dragster</text>
   <text x="140" y="670" dy="0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">speed</text>
   {% for s in states %}
-  <rect x="{{150+5*loop.index0}}" y="{{510+5*s.v/4}}" width="5" height="5" fill="blue" />
+  <rect x="{{150+5*s.frame}}" y="{{510+5*s.v/4}}" width="5" height="5" fill="#3465a4" />
   {% endfor %}
 
   <!-- start line -->
-  <rect x="150" y="830" width="{{5*maxframe}}" height="5" fill="black" fill-opacity="0.3" />
+  <rect x="150" y="830" width="{{5*(states|length)}}" height="5" fill="black" fill-opacity="0.3" />
   <!-- finish line -->
-  <rect x="150" y="1326.64" width="{{5*maxframe}}" height="5" fill="black" fill-opacity="0.3" />
+  <rect x="150" y="1326.64" width="{{5*(states|length)}}" height="5" fill="black" fill-opacity="0.3" />
   <!-- dragster position -->
   <text x="140" y="1081" dy="-0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">dragster</text>
   <text x="140" y="1081" dy="0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">position</text>
   {% for s in states %}
-  <rect x="{{150+5*loop.index0}}" y="{{830+s.x/50}}" width="5" height="5" fill="black" />
+  <rect x="{{150+5*s.frame}}" y="{{830+s.x/50}}" width="5" height="5" fill="black" />
   {% endfor %}
 
   <!-- frame select overlay -->
-  {% for t in range(maxframe) %}
-  <g transform="translate({{150+5*t}},0)">
-    <rect id="sel{{t}}" visibility="hidden" x="0" y="300" width="5" height="1060" fill="black" fill-opacity="0.15" />
+  {% for s in states %}
+  <g transform="translate({{150+5*s.frame}},0)">
+    <rect id="sel{{s.frame}}" visibility="hidden" x="0" y="300" width="5" height="1060" fill="black" fill-opacity="0.15" />
     <rect visibility="hidden" pointer-events="all" x="0" y="38" width="5" height="1322"
-          onmouseover="document.getElementById('sel{{t}}').setAttribute('visibility','visible'); document.getElementById('frame{{t}}').setAttribute('visibility','visible'); /*document.getElementById('info{{t}}').setAttribute('visibility','visible');*/"
-          onmouseout="document.getElementById('sel{{t}}').setAttribute('visibility','hidden'); document.getElementById('frame{{t}}').setAttribute('visibility','hidden'); /*document.getElementById('info{{t}}').setAttribute('visibility','hidden');*/" />
+          onmouseover="document.getElementById('sel{{s.frame}}').setAttribute('visibility','visible'); document.getElementById('frame{{s.frame}}').setAttribute('visibility','visible'); /*document.getElementById('info{{s.frame}}').setAttribute('visibility','visible');*/"
+          onmouseout="document.getElementById('sel{{s.frame}}').setAttribute('visibility','hidden'); document.getElementById('frame{{s.frame}}').setAttribute('visibility','hidden'); /*document.getElementById('info{{s.frame}}').setAttribute('visibility','hidden');*/" />
   </g>
   {% endfor %}
-
-
-  <!--
-  <circle cx="250" cy="250" r="50" fill="red" stroke="black"
-          onmouseover="this.style.stroke = '#0000ff'; this.style['stroke-width'] = 5;"
-          onmouseout="this.style.stroke = '#000000'; this.style['stroke-width'] = 1;"/>
-  <script type="text/javascript"><![CDATA[
-    var KEY = { w:87, a:65, s:83, d:68 };
-    var moveSpeed = 5;
-    var circle = document.getElementsByTagName("circle")[0];
-    var x = circle.getAttribute('cx')*1,
-        y = circle.getAttribute('cy')*1;
-    document.documentElement.addEventListener('keydown',function(evt){
-      switch (evt.keyCode){
-        case KEY.w:
-          circle.setAttribute('cy',y-=moveSpeed);
-          // Alternatively:
-          // circle.cy.baseVal.value = (y-=moveSpeed);
-        break;
-        case KEY.s:
-          circle.setAttribute('cy',y+=moveSpeed);
-        break;
-        case KEY.a:
-          circle.setAttribute('cx',x-=moveSpeed);
-        break;
-        case KEY.d:
-          circle.setAttribute('cx',x+=moveSpeed);
-        break;
-      }
-    },false);
-  ]]></script>
-  -->
 </svg>

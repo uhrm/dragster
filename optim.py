@@ -2,6 +2,8 @@
 import argparse
 import gurobipy as grb
 from gurobipy import GRB
+from pathlib import Path
+from sim import write_script
 
 
 # parse arguments
@@ -9,6 +11,7 @@ parser = argparse.ArgumentParser(description="Compute optimal Dragster inputs.")
 # parser.add_argument("--romname", default="Dragster (1980) (Activision)", help="The name of the ROM file.")
 parser.add_argument("--offset", type=int, default=0, help="Global frame counter offset for starting game.")
 parser.add_argument("--nsteps", type=int, default=177, help="Number of time steps to optimize.")
+parser.add_argument("--init", action="store_true", help="Specify an initial solution to the solver.")
 args = parser.parse_args()
 
 
@@ -44,6 +47,11 @@ mod.modelSense = GRB.MAXIMIZE
 # inputs (throttle, clutch)
 u = [[mod.addVar(vtype=GRB.BINARY, name=f"u(th,{j})") for j in range(n)],
      [mod.addVar(vtype=GRB.BINARY, name=f"u(cl,{j})") for j in range(n)]]
+# ***DEBUG***
+# inputs for x=24884 in 5.57
+# u = [[0 if j in (1, 3, 16, 27, 28, 44, 154, 162, 170) else 1 for j in range(n)],
+#      [1 if j in (9, 26, 43, 63, 85, 96, 109, 118, 127, 153, 154, 161, 162, 169, 170) else 0 for j in range(n)]]
+# ***ENDEBUG***
 
 # gear variables (N, 1, 2, 3, 4)
 y = [[1]*10 + [mod.addVar(vtype=GRB.BINARY, name=f"y(0,{j})") for j in range(10,n)],
@@ -84,6 +92,13 @@ vd = [[None] + [mod.addVar(vtype=GRB.BINARY, name=f"vd(0,{j})") for j in range(1
 # motor speed increment (speed difference)
 rv = [0] + [mod.addVar(vtype=GRB.BINARY, name=f"rv({j})") for j in range(1,n)]
 
+# if args.init:
+#     uth = [0 if j in (0, 1, 2, 3, 16, 27, 28, 44, 154, 162, 170) else 1 for j in range(n)]
+#     ucl = [1 if j in (9, 26, 43, 63, 85, 96, 109, 118, 127, 153, 154, 161, 162, 169, 170) else 0 for j in range(n)]
+#     for j in range(0, n):
+#         u[0][j].start = uth[j]
+#         u[1][j].start = ucl[j]
+
 mod.update()
 
 # gear switching
@@ -119,13 +134,13 @@ for j in range(1, n):
 #   yr[i][j] = y[i][j]==1 and u[cl][j-1]==0
 #
 for j in range(1, n):
-    mod.addConstr(yr[0][j], GRB.GREATER_EQUAL, y[0][j], f"YR1(0,{j}")
-    mod.addConstr(yr[0][j], GRB.GREATER_EQUAL, u[1][j-1], f"YR2(0,{j}")
-    mod.addConstr(yr[0][j], GRB.LESS_EQUAL, y[0][j] + u[1][j-1], f"YR3(0,{j}")
+    mod.addConstr(yr[0][j], GRB.GREATER_EQUAL, y[0][j], f"YR1(0,{j})")
+    mod.addConstr(yr[0][j], GRB.GREATER_EQUAL, u[1][j-1], f"YR2(0,{j})")
+    mod.addConstr(yr[0][j], GRB.LESS_EQUAL, y[0][j] + u[1][j-1], f"YR3(0,{j})")
     for i in range(1, 5):
-        mod.addConstr(yr[i][j], GRB.LESS_EQUAL, y[i][j], f"YR1({i},{j}")
-        mod.addConstr(yr[i][j], GRB.LESS_EQUAL, 1-u[1][j-1], f"YR2(0,{j}")
-        mod.addConstr(yr[i][j], GRB.GREATER_EQUAL, y[i][j] - u[1][j-1], f"YR3({i},{j}")
+        mod.addConstr(yr[i][j], GRB.LESS_EQUAL, y[i][j], f"YR1({i},{j})")
+        mod.addConstr(yr[i][j], GRB.LESS_EQUAL, 1-u[1][j-1], f"YR2(0,{j})")
+        mod.addConstr(yr[i][j], GRB.GREATER_EQUAL, y[i][j] - u[1][j-1], f"YR3({i},{j})")
 
 # motor speed
 #
@@ -147,14 +162,14 @@ for j in range(n):
     mod.addConstr(rd[0][j], GRB.GREATER_EQUAL, -yr[0][j], f"Rd3(0,{j})")
     Rdrhs = (2*u[0][j], 2*u[0][j]-2, 0, 0)
     for i in range(1, 5):
-        if frame(j, offset) & rpm_skip[i] == 0:
+        if (frame(j, offset) & rpm_skip[i]) == 0:
             Rdrhs = (-yr[i][j]+Rdrhs[0], yr[i][j]+Rdrhs[1], yr[i][j]+Rdrhs[2], -yr[i][j]+Rdrhs[3])
     mod.addConstr(rd[1][j], GRB.LESS_EQUAL, Rdrhs[0], f"Rd1(1,{j})")
     mod.addConstr(rd[1][j], GRB.GREATER_EQUAL, Rdrhs[1], f"Rd2(1,{j})")
     mod.addConstr(rd[1][j], GRB.LESS_EQUAL, Rdrhs[2], f"Rd3(1,{j})")
     mod.addConstr(rd[1][j], GRB.GREATER_EQUAL, Rdrhs[3], f"Rd3(1,{j})")
     # mod.addConstr(r[j], GRB.EQUAL, (r[j-1] if j > 0 else 0) + 3*rd[0][j] + rd[1][j], f"R({j})")
-    mod.addConstr(r[j], GRB.EQUAL, (r[j-1] if j > 0 else 0) + 3*rd[0][j] + rd[1][j] - rv[j-1], f"R({j})")
+    mod.addConstr(r[j], GRB.EQUAL, (r[j-1] if j > 0 else 0) + 3*rd[0][j] + rd[1][j] - (rv[j-1] if j > 0 else 0), f"R({j})")
 
 # turbocharger flag
 #
@@ -203,17 +218,17 @@ for j in range(1, n):
     # vd[0] (increment)
     mod.addConstr(vd[0][j], GRB.LESS_EQUAL, 1-yr[0][j], "")
     mod.addConstr(v[j-1] + 252*(yr[0][j]+vd[0][j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j], "")
-    mod.addConstr(v[j-1] - 252*(1-vd[0][j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-1, "")
+    mod.addConstr(v[j-1] - 253*(1-vd[0][j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-1, "")
     # vd[1] (decrement)
     mod.addConstr(vd[1][j], GRB.LESS_EQUAL, 1-yr[0][j], "")
     mod.addConstr(v[j-1] - 252*(yr[0][j]+vd[1][j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j], "")
-    mod.addConstr(v[j-1] + 252*(1-vd[1][j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]+1, "")
+    mod.addConstr(v[j-1] + 253*(1-vd[1][j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]+1, "")
     # v (speed)
     mod.addConstr(v[j], GRB.EQUAL, v[j-1] + 2*vd[0][j] - vd[1][j], "")
     # rv (motor speed increment)
     mod.addConstr(rv[j], GRB.LESS_EQUAL, 1-yr[0][j], "")
-    mod.addConstr(v[j-1] + 252*(yr[0][j]+rv[j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-15, "")
-    mod.addConstr(v[j-1] - 252*(1-rv[j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-16, "")
+    mod.addConstr(v[j-1] + 237*(yr[0][j]+rv[j]), GRB.GREATER_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-15, "")
+    mod.addConstr(v[j-1] - 268*(1-rv[j]), GRB.LESS_EQUAL, vr[1][j]+vr[2][j]+vr[3][j]+vr[4][j]-16, "")
 
 # symmetry breaking
 #
@@ -246,31 +261,31 @@ if (mod.status == GRB.OPTIMAL) or (mod.status == GRB.INTERRUPTED) or (mod.status
               f"{2*(int(vd[0][j].x) if j >= 1 else 0)-(int(vd[1][j].x) if j >= 1 else 0):2d}  "
               f"{int(v[j].x) if j >= 10 else v[j]:<3d}  "
               f"{int(rv[j].x) if j >= 1 else rv[j]:d}")
+
+    # input generator from optimal solution
+    def optgen(offset):
+        th = 0
+        cl = 0
+        t = 1  # inputs start at frame 1
+        while True:
+            j = step(t, offset)
+            if j >= 0:
+                th = int(u[0][j].x)
+                cl = int(u[1][j].x)
+                # th = int(u[0][j])
+                # cl = int(u[1][j])
+            yield th, cl
+            t += 1
+
+    # write Stella debug script
+    Path('scripts').mkdir(parents=True, exist_ok=True)  # create 'scripts' directory
+    with open(f"scripts/opt{n:03d}_ofs{2*offset:x}.script", "w") as script:
+        write_script(script, optgen(offset), offset, frame(n, offset) - 1)
+
 elif (mod.status == GRB.INF_OR_UNBD) or (mod.status == GRB.INFEASIBLE):
-    # mod.computeIIS()
-    # mod.write("%s.ilp" % "tmp")
+    mod.computeIIS()
+    mod.write("%s.ilp" % "tmp")
     pass
 
 
-from pathlib import Path
-from sim import write_script
-
-# input generator from optimal solution
-def optgen(offset):
-    th = 0
-    cl = 0
-    t = 1  # inputs start at frame 1
-    while True:
-        j = step(t, offset)
-        if j >= 0:
-            th = int(u[0][j].x)
-            cl = int(u[1][j].x)
-        yield th, cl
-        t += 1
-
-
-# write Stella debug script
-Path('scripts').mkdir(parents=True, exist_ok=True)  # create 'scripts' directory
-with open(f"scripts/opt{n:03d}_ofs{2*offset:x}.script", "w") as script:
-    write_script(script, optgen(offset), offset, frame(n, offset)-1)
 

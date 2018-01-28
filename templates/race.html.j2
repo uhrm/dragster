@@ -8,7 +8,7 @@
   <body>
     <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="{{150+5*(states|length)}}" height="1360">
       {% for s in states %}
-      <g id="frame{{s.frame}}" visibility="hidden" transform="translate({{150+5*s.frame-145*s.frame/((states|length)-1)}},0)">
+      <g id="frame{{s.frame}}" visibility="hidden" transform="translate({{150+(5-145/((states|length)-1))*(s.frame-nskip)}},0)">
         <!-- text info -->
         <rect x="0" y="30" width="150" height="120" fill="#CCCCCC" />
         <text x="0" y="30" font-family="Courier" font-size="14" >
@@ -24,13 +24,18 @@
 
       <!-- separator -->
       <rect x="150" y="150" width="{{5*(states|length)}}" height="5" fill="black" fill-opacity="0.3" />
+      {% for s in states %}
+      {% if s.frame > 0 and (s.y <= 1 or (((s.frame-1)//2)%2 == 0 and (s.y <= 2 or (((s.frame-1)//4)%2 == 0 and (s.y <= 3 or ((s.frame-1)//8)%2 == 0))))) %}
+      <rect x="{{150+5*(s.frame-nskip)}}" y="150" width="5" height="5" fill="#75507b" />
+      {% endif %}
+      {% endfor %}
 
       <!-- throttle -->
       <text x="140" y="162.5" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">throttle</text>
       {% set player_frame = cycler(false, true) %}
       {% for s in states %}
       {% if player_frame.next() and s.th == 1 %}
-      <rect x="{{150+5*s.frame}}" y="155" width="10" height="15" fill="#cc0000" />
+      <rect x="{{150+5*(s.frame-nskip)}}" y="155" width="10" height="15" fill="#cc0000" />
       {% endif %}
       {% endfor %}
 
@@ -42,7 +47,7 @@
       {% set player_frame = cycler(false, true) %}
       {% for s in states %}
       {% if player_frame.next() and s.cl == 1 %}
-      <rect x="{{150+5*s.frame}}" y="175" width="10" height="15" fill="#cc0000" />
+      <rect x="{{150+5*(s.frame-nskip)}}" y="175" width="10" height="15" fill="#cc0000" />
       {% endif %}
       {% endfor %}
 
@@ -53,7 +58,7 @@
       <text x="140" y="275" dy="-0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">motor</text>
       <text x="140" y="275" dy="0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">speed</text>
       {% for s in states %}
-      <rect x="{{150+5*s.frame}}" y="{{195+5*s.r}}" width="5" height="5" fill="{% if s.r < 20 %}#3465a4{% else %}#75507b{% endif %}" />
+      <rect x="{{150+5*(s.frame-nskip)}}" y="{{195+5*s.r}}" width="5" height="5" fill="{% if s.r < 20 %}#3465a4{% else %}#75507b{% endif %}" />
       {% endfor %}
 
       <!-- separator -->
@@ -63,9 +68,9 @@
       <text x="140" y="520" dy="-0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">dragster</text>
       <text x="140" y="520" dy="0.6em" font-family="Courier" font-size="14" text-anchor="end" alignment-baseline="middle">speed</text>
       {% for s in states %}
-      <rect x="{{150+5*s.frame}}" y="{{360+5*s.v/4}}" width="5" height="5" fill="#3465a4" />
+      <rect x="{{150+5*(s.frame-nskip)}}" y="{{360+5*s.v/4}}" width="5" height="5" fill="#3465a4" />
       {% if s.vr != s.v %}
-      <rect x="{{150+5*s.frame}}" y="{{360+5*s.vr/4}}" width="5" height="5" fill="{% if s.vr-s.v < 16 %}#4e9a06{% else %}#a40000{% endif %}" />
+      <rect x="{{150+5*(s.frame-nskip)}}" y="{{360+5*s.vr/4}}" width="5" height="5" fill="{% if s.vr-s.v < 16 %}#4e9a06{% else %}#a40000{% endif %}" />
       {% endif %}
       {% endfor %}
 
@@ -74,36 +79,36 @@
 
       <!-- frame select overlay -->
       {% for s in states %}
-      <rect id="sel{{s.frame}}" visibility="hidden" x="{{150+5*s.frame}}" y="150" width="5" height="535" fill="black" fill-opacity="0.15" />
+      <rect id="sel{{s.frame}}" visibility="hidden" x="{{150+5*(s.frame-nskip)}}" y="150" width="5" height="535" fill="black" fill-opacity="0.15" />
       {% endfor %}
       {% set player_frame = cycler(false, true) %}
       {% for s in states %}
       {% if player_frame.next() %}
-      <rect id="hith{{s.frame}}" visibility="hidden" pointer-events="all" x="{{150+5*s.frame}}" y="155" width="10" height="15" fill="#ef2929" />
+      <rect id="hith{{s.frame}}" visibility="hidden" pointer-events="all" x="{{150+5*(s.frame-nskip)}}" y="155" width="10" height="15" fill="#ef2929" />
       {% endif %}
       {% endfor %}
       {% set player_frame = cycler(false, true) %}
       {% for s in states %}
       {% if player_frame.next() %}
-      <rect id="hicl{{s.frame}}" visibility="hidden" pointer-events="all" x="{{150+5*s.frame}}" y="175" width="10" height="15" fill="#ef2929" />
+      <rect id="hicl{{s.frame}}" visibility="hidden" pointer-events="all" x="{{150+5*(s.frame-nskip)}}" y="175" width="10" height="15" fill="#ef2929" />
       {% endif %}
       {% endfor %}
       {% for s in states %}
-      <rect visibility="hidden" pointer-events="all" x="{{150+5*s.frame}}" y="100" width="5" height="55"
+      <rect visibility="hidden" pointer-events="all" x="{{150+5*(s.frame-nskip)}}" y="30" width="5" height="125"
         onmouseover="showFrameOverlay({{s.frame}}, false, false);"
         onmouseout="hideFrameOverlay({{s.frame}}, false, false);" />
-      <rect visibility="hidden" pointer-events="all" x="{{150+5*s.frame}}" y="155" width="5" height="15"
+      <rect visibility="hidden" pointer-events="all" x="{{150+5*(s.frame-nskip)}}" y="155" width="5" height="15"
         onmouseover="showFrameOverlay({{s.frame}}, true, false);"
         onmouseout="hideFrameOverlay({{s.frame}}, true, false);"
         onclick="toggle('th', {{s.frame}});" />
-      <rect visibility="hidden" pointer-events="all" x="{{150+5*s.frame}}" y="170" width="5" height="5"
+      <rect visibility="hidden" pointer-events="all" x="{{150+5*(s.frame-nskip)}}" y="170" width="5" height="5"
         onmouseover="showFrameOverlay({{s.frame}}, false, false);"
         onmouseout="hideFrameOverlay({{s.frame}}, false, false);" />
-      <rect visibility="hidden" pointer-events="all" x="{{150+5*s.frame}}" y="175" width="5" height="15"
+      <rect visibility="hidden" pointer-events="all" x="{{150+5*(s.frame-nskip)}}" y="175" width="5" height="15"
         onmouseover="showFrameOverlay({{s.frame}}, false, true);"
         onmouseout="hideFrameOverlay({{s.frame}}, false, true);"
         onclick="toggle('cl', {{s.frame}});" />
-      <rect visibility="hidden" pointer-events="all" x="{{150+5*s.frame}}" y="190" width="5" height="495"
+      <rect visibility="hidden" pointer-events="all" x="{{150+5*(s.frame-nskip)}}" y="190" width="5" height="495"
         onmouseover="showFrameOverlay({{s.frame}}, false, false);"
         onmouseout="hideFrameOverlay({{s.frame}}, false, false);" />
       {% endfor %}
@@ -135,20 +140,20 @@
         function showFrameOverlay(frame, th, cl) {
             document.getElementById('sel'+frame).setAttribute('visibility','visible');
             document.getElementById('frame'+frame).setAttribute('visibility','visible');
-            if (th) {
+            if (th && (frame-{{nskip}}) > 0) {
                 document.getElementById('hith'+((frame-1)|1)).setAttribute('visibility', 'visible');
             }
-            if (cl) {
+            if (cl && (frame-{{nskip}}) > 0) {
                 document.getElementById('hicl'+((frame-1)|1)).setAttribute('visibility', 'visible');
             }
         }
         function hideFrameOverlay(frame, th, cl) {
             document.getElementById('sel'+frame).setAttribute('visibility','hidden');
             document.getElementById('frame'+frame).setAttribute('visibility','hidden');
-            if (th) {
+            if (th && (frame-{{nskip}}) > 0) {
                 document.getElementById('hith'+((frame-1)|1)).setAttribute('visibility', 'hidden');
             }
-            if (cl) {
+            if (cl && (frame-{{nskip}}) > 0) {
                 document.getElementById('hicl'+((frame-1)|1)).setAttribute('visibility', 'hidden');
             }
         }

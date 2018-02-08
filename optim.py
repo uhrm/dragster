@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser(description="Compute optimal Dragster inputs.")
 parser.add_argument("--offset", type=int, default=0, help="Global frame counter offset for starting game.")
 parser.add_argument("--nsteps", type=int, default=177, help="Number of time steps to optimize.")
 parser.add_argument("--init", action="store_true", help="Specify an initial solution to the solver.")
+parser.add_argument("--save", action="store_true", help="Save best solution to Stella script file.")
 args = parser.parse_args()
 
 
@@ -60,7 +61,7 @@ y = [[1]*10 + [mod.addVar(vtype=GRB.BINARY, name=f"y(0,{j})") for j in range(10,
      [0]*10 + [mod.addVar(vtype=GRB.BINARY, name=f"y(3,{j})") for j in range(10,n)],
      [0]*10 + [mod.addVar(vtype=GRB.BINARY, name=f"y(4,{j})") for j in range(10,n)]]
 # gear switch flag
-yc = [None] + [mod.addVar(vtype=GRB.BINARY, name=f"yc({j})") for j in range(1,n)]
+yc = [None]*10 + [mod.addVar(vtype=GRB.BINARY, name=f"yc({j})") for j in range(10,n)]
 # gear/motor speed coupling
 yr = [[1] + [mod.addVar(vtype=GRB.BINARY, name=f"yr0({j})") for j in range(1,n)],
       [0] + [mod.addVar(vtype=GRB.BINARY, name=f"yr1({j})") for j in range(1,n)],
@@ -92,12 +93,12 @@ vd = [[None] + [mod.addVar(vtype=GRB.BINARY, name=f"vd(0,{j})") for j in range(1
 # motor speed increment (speed difference)
 rv = [0] + [mod.addVar(vtype=GRB.BINARY, name=f"rv({j})") for j in range(1,n)]
 
-# if args.init:
-#     uth = [0 if j in (0, 1, 2, 3, 16, 27, 28, 44, 154, 162, 170) else 1 for j in range(n)]
-#     ucl = [1 if j in (9, 26, 43, 63, 85, 96, 109, 118, 127, 153, 154, 161, 162, 169, 170) else 0 for j in range(n)]
-#     for j in range(0, n):
-#         u[0][j].start = uth[j]
-#         u[1][j].start = ucl[j]
+if args.init:
+    uth = [0 if j in (0, 1, 2, 3, 16, 27, 28, 44, 154, 162, 170) else 1 for j in range(n)]
+    ucl = [1 if j in (9, 26, 43, 63, 85, 96, 109, 118, 127, 153, 154, 161, 162, 169, 170) else 0 for j in range(n)]
+    for j in range(0, n):
+        u[0][j].start = uth[j]
+        u[1][j].start = ucl[j]
 
 mod.update()
 
@@ -108,7 +109,7 @@ mod.update()
 #   y[i][j] = y[i-1][j-1]    if yc[j]==1
 #   y[i][j] = y[i][j-1]      otherwise
 #
-for j in range(1, n):
+for j in range(10, n):
     mod.addConstr(yc[j], GRB.LESS_EQUAL, u[1][j-1], f"Sc1({j}")
     mod.addConstr(yc[j], GRB.LESS_EQUAL, 1-u[1][j], f"Sc2({j}")
     mod.addConstr(yc[j], GRB.GREATER_EQUAL, u[1][j-1]-u[1][j], f"Sc3({j}")
@@ -156,10 +157,13 @@ for j in range(1, n):
 #
 rpm_skip = [0x00, 0x00, 0x02, 0x06, 0x0E]
 for j in range(n):
-    mod.addConstr(rd[0][j], GRB.LESS_EQUAL, -yr[0][j] + 2*u[0][j], f"Rd1(0,{j})")
-    mod.addConstr(rd[0][j], GRB.GREATER_EQUAL, yr[0][j] + 2*u[0][j] - 2, f"Rd2(0,{j})")
-    mod.addConstr(rd[0][j], GRB.LESS_EQUAL, yr[0][j], f"Rd3(0,{j})")
-    mod.addConstr(rd[0][j], GRB.GREATER_EQUAL, -yr[0][j], f"Rd3(0,{j})")
+    if j == 0:
+        mod.addConstr(rd[0][j], GRB.EQUAL, u[0][j], f"Rd(0,{j})")
+    else:
+        mod.addConstr(rd[0][j], GRB.LESS_EQUAL, -yr[0][j] + 2*u[0][j], f"Rd1(0,{j})")
+        mod.addConstr(rd[0][j], GRB.GREATER_EQUAL, yr[0][j] + 2*u[0][j] - 2, f"Rd2(0,{j})")
+        mod.addConstr(rd[0][j], GRB.LESS_EQUAL, yr[0][j], f"Rd3(0,{j})")
+        mod.addConstr(rd[0][j], GRB.GREATER_EQUAL, -yr[0][j], f"Rd3(0,{j})")
     Rdrhs = (2*u[0][j], 2*u[0][j]-2, 0, 0)
     for i in range(1, 5):
         if (frame(j, offset) & rpm_skip[i]) == 0:
@@ -252,7 +256,7 @@ if (mod.status == GRB.OPTIMAL) or (mod.status == GRB.INTERRUPTED) or (mod.status
               f"{int(u[0][j].x):<2d}  "
               f"{int(u[1][j].x):<2d}  "
               f"{sum(i*(int(y[i][j].x) if j >= 10 else y[i][j]) for i in range(5)):d}  "
-              f"{int(yc[j].x) if j >= 1 else 0:<2d}  "
+              f"{int(yc[j].x) if j >= 10 else 0:<2d}  "
               f"{sum(i*(int(yr[i][j].x) if j >= 1 else yr[i][j]) for i in range(5)):<2d}  "
               f"{3*int(rd[0][j].x)+int(rd[1][j].x):2d}  "
               f"{int(r[j].x):<2d}  "
@@ -277,10 +281,12 @@ if (mod.status == GRB.OPTIMAL) or (mod.status == GRB.INTERRUPTED) or (mod.status
             yield th, cl
             t += 1
 
-    # write Stella debug script
-    Path('scripts').mkdir(parents=True, exist_ok=True)  # create 'scripts' directory
-    with open(f"scripts/opt{n:03d}_ofs{2*offset:x}.script", "w") as script:
-        write_script(script, optgen(offset), offset, frame(n, offset) - 1)
+    if args.save:
+        # write Stella debug script
+        print(f"Writing script file 'opt{n:03d}_ofs{2*offset:X}'.")
+        Path('scripts').mkdir(parents=True, exist_ok=True)  # create 'scripts' directory
+        with open(f"scripts/opt{n:03d}_ofs{2*offset:X}.script", "w") as script:
+            write_script(script, optgen(offset), 2*offset, frame(n, offset)-1)
 
 elif (mod.status == GRB.INF_OR_UNBD) or (mod.status == GRB.INFEASIBLE):
     mod.computeIIS()

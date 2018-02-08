@@ -1,7 +1,7 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{{200+5*maxframe}}" height="1360">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{{200+5*(states|length)}}" height="1360">
   {% for s in states %}
-  <g id="frame{{s.frame}}" visibility="hidden" transform="translate({{150+(5-315/(maxframe-1))*s.frame}},0)">
+  <g id="frame{{s.frame}}" visibility="hidden" transform="translate({{150+(5-315/((states|length)-1))*s.frame}},0)">
     <!-- frames -->
     <image x="0" y="38" width="320" height="212" xlink:href="data:image/png;base64,{{frames[s.frame]}}" />
 

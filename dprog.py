@@ -1,12 +1,25 @@
 
+import argparse
 import sys
 from datetime import datetime
 from itertools import product
+from pathlib import Path
+from sim import write_script
 from time import perf_counter
 
-ofs = 0  # global frame counter offset
+
+# parse arguments
+parser = argparse.ArgumentParser(description="Compute optimal Dragster inputs.")
+# parser.add_argument("--romname", default="Dragster (1980) (Activision)", help="The name of the ROM file.")
+parser.add_argument("--offset", type=int, default=0, help="Global frame counter offset for starting game.")
+parser.add_argument("--nsteps", type=int, default=168, help="Number of time steps to optimize.")
+parser.add_argument("--save", action="store_true", help="Save best solution to Stella script file.")
+args = parser.parse_args()
+
+# global parameters
+ofs = args.offset  # offset (in time steps) of game start relative to global frame counter [0-7]
 m = 2*5*32*254+1  # size of state space
-n = 167  # number of time steps
+n = args.nsteps  # number of time steps (default 168 corresponds to a 5.57 finish time)
 
 #
 # dragster state x
@@ -100,10 +113,67 @@ for j in range(n-2, -1, -1):
         Qmax = Q[j+1][idx(nxt(j+1, ofs, umax, xj))]
         Q[j][i] = xj[3] + Qmax
 print(f"Solver finished: {datetime.now().strftime('%Y-%m-%d %H:%M')} ({fmtspan(perf_counter()-tbeg)})")
-print()
 
 # read out solution
-print(" r     Q")
-print("----------")
-for r in range(0, 32, 3):
-    print(f"{r:2d}   {Q[0][idx((0, 0, r, 0))]:5d}")
+print()
+print("c  r     Q")
+print("------------")
+for c, r in product(range(2), range(0,32,3)):
+    print(f"{c} {r:2d}   {Q[0][idx((c, 0, r, 0))]:5d}")
+
+# find best starting condition
+x0 = max(product(range(2), range(0,32,3)), key=lambda x: Q[0][idx((x[0], 0, x[1], 0))])
+x0 = (x0[0], 0, x0[1], 0)
+
+print()
+print("j    frame  th  cl  c   y   r    v     Q")
+print("------------------------------------------")
+print(f"{j:<3d}  {frm(j, ofs):<5d}  -    -  {x0[0]:<2d}  {x0[1]:<2d}  {x0[2]:2d}  {x0[3]:3d}  {Q[0][idx(x0)]:5d}")
+xj = x0
+for j in range(1, n):
+    uj = u[j-1][idx(xj)]
+    xj = nxt(j, ofs, uj, xj)
+    Qj = Q[j][idx(xj)]
+    print(f"{j:<3d}  "
+          f"{frm(j, ofs):<5d}  "
+          f"{uj[0]:<2d}  "
+          f"{uj[1]:<2d}  "
+          f"{xj[0]:<2d}  "
+          f"{xj[1]:<2d}  "
+          f"{xj[2]:2d}  "
+          f"{xj[3]:3d}  "
+          f"{Qj:5d}  ")
+
+
+# input generator from optimal solution
+def dproggen(ofs, x0):
+    t = 1  # inputs start at frame 1
+    while stp(t, ofs) <= -x0[2]//3:
+        yield 0, 0
+        t += 1
+    while stp(t, ofs) < 0:
+        yield 1, 0
+        t += 1
+    j = 0
+    yield 1, x0[0]
+    t += 1
+    yield 1, x0[0]
+    t += 1
+    j += 1
+    xj = x0
+    while j < n:
+        uj = u[j-1][idx(xj)]
+        xj = nxt(j, ofs, uj, xj)
+        yield uj[0], uj[1]
+        t += 1
+        yield uj[0], uj[1]
+        t += 1
+        j += 1
+
+
+if args.save:
+    # write Stella debug script
+    print(f"Writing script file 'dprog{n:03d}_ofs{2*ofs:X}'.")
+    Path('scripts').mkdir(parents=True, exist_ok=True)  # create 'scripts' directory
+    with open(f"scripts/dprog{n:03d}_ofs{2*ofs:X}.script", "w") as script:
+        write_script(script, dproggen(ofs, x0), 2*ofs, frm(n, ofs)-1)

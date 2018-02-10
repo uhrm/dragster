@@ -1,3 +1,8 @@
+
+## Dragster
+
+* Description of [game physics](physics.md).
+
 ## Races
 
 * [Demo](plots/race_demo.svg) &emsp; A demo race in 6.04

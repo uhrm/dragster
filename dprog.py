@@ -1,6 +1,5 @@
 
 import argparse
-import sys
 from datetime import datetime
 from itertools import product
 from pathlib import Path
@@ -96,16 +95,11 @@ def fmtspan(d, prec=3):
 
 
 # solve dynamic programming problem
+u = [[None]*m for j in range(n-1)]
+Q = [[0 if i<m-1 else -1 for i in range(m)] for j in range(n)]
 tbeg = perf_counter()
-u = [None]*(n-1)
-Q = [None]*n
-Q[n-1] = [0]*m
-Q[n-1][m-1] = -sys.maxsize  # denoting infeasibility
 for j in range(n-2, -1, -1):
     print(f"Frame {j} (eta: {fmtspan((perf_counter()-tbeg)/(n-2-j)*(j+1), prec=1) if j < n-2 else 'n/a'})")
-    u[j] = [None]*(m-1)
-    Q[j] = [None]*m
-    Q[j][m-1] = -sys.maxsize  # denoting infeasibility
     for xj in product(range(2), range(5), range(32), range(254)):
         i = idx(xj)
         umax = max(product(range(2),range(2)), key=lambda u: Q[j+1][idx(nxt(j+1, ofs, u, xj))])

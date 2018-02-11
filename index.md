@@ -24,6 +24,9 @@
 
 * Optimal races
   
+  It is possible to compute optimal game inputs for achieving maximum distance
+  in a given amount of time (description of [dynamic programming alorithm](dprog.md)).
+  
   The following table lists the best possible distance achievable in 5.57,
   depending on the game start offset.
   

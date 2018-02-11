@@ -2,7 +2,7 @@
 
 #### States and Inputs
 
-State of game depends on 6 variables:
+State of game depends on 5 variables:
   * Clutch flag: $$c \in \{ 0, 1 \}$$
   * Gear: $$y \in \{ 0, 1, 2, 3, 4 \}$$ where $$y = 0$$ indicates the
     'neutral' gear.
@@ -48,7 +48,7 @@ effects on the updating rules of motor speed ($$r$$) and dragster speed
 ($$v$$) as explained the other subsections.
 
 
-#### Effect motor speed
+#### Effect of motor speed
 
 The motor speed $$r$$ determins whether the car accelerates or decelerates,
 depending on the car's current speed $$v$$. A given gear and motor speed

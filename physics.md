@@ -13,8 +13,8 @@ $$
 x_{t+1} = f_t(x_t, u_t)
 $$
 
-where $$t$$ is a global in-game frame counter, $$x_t$$ is the state in frame
-$$t$$ and $$u_t$$ are the user inputs in frame $$t$$.
+where $$t$$ is a global in-game frame counter, $$x_t$$ is the game state in
+frame $$t$$ and $$u_t$$ are the user inputs in frame $$t$$.
 
 The state $$x = (c, y, r, v, z)$$ of the game is completely characterized by
 five variables:

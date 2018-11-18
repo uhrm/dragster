@@ -4,7 +4,7 @@ title: Dragster
 
 ## Dragster
 
-* Description of [game physics](physics.md).
+* Description of the [game physics](physics.md).
 
 ## Races
 
@@ -12,7 +12,7 @@ title: Dragster
 * Analysis of global frame counter
 
   The following table lists eight races with same user input, but different
-  race start frame.
+  race start times relative to the in-game frame counter.
 
   | Offset | Start (Frame) | Time   | Plots                            |
   |--------|---------------|--------|----------------------------------|
@@ -27,11 +27,12 @@ title: Dragster
 
 * Optimal races
   
-  It is possible to compute optimal game inputs for achieving maximum distance
-  in a given amount of time (description of [dynamic programming alorithm](dprog.md)).
+  It is possible to compute optimal game inputs for achieving the maximum
+  distance in a given amount of time (see the description of [dynamic
+  programming algorithm](dprog.md)).
   
-  The following table lists the best possible distance achievable in 5.57,
-  depending on the game start offset.
+  The following table lists the best possible distances achievable in 5.57,
+  depending on the offset of the in-game frame counter.
   
   | Offset | Start (Frame) | Distance | Plots                                |
   |--------|---------------|----------|--------------------------------------|

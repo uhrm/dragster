@@ -1,6 +1,6 @@
 [submodule "rom"]
 	path = rom
-	url = ssh://git@uhrm.repositoryhosting.com/uhrm/dragster-rom.git
+	url = git@gitlab.com:uhrm/dragster-rom.git
 [submodule "stella"]
 	path = stella
 	url = https://github.com/uhrm/stella.git
